@@ -180,6 +180,12 @@ impl FixedJoint {
         }
     }
 
+    /// Sets rotation to be maintained by the joint.
+    pub fn with_fixed_rotation(mut self, fixed_rotation: impl Into<Rotation>) -> Self {
+        self.angle_constraint.fixed_rotation = fixed_rotation.into();
+        self
+    }
+
     /// Returns the Lagrange multiplier used for the positional correction.
     #[inline]
     pub fn point_lagrange(&self) -> Scalar {

@@ -23,6 +23,8 @@ pub struct FixedAngleConstraint {
     torque: Torque,
     /// Pre-step data for the solver.
     pub(crate) pre_step: FixedAngleConstraintPreStepData,
+    /// Relative rotation of bodies to be maintained.
+    pub(crate) fixed_rotation: Rotation,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Reflect)]
@@ -68,8 +70,12 @@ impl XpbdConstraint<2> for FixedAngleConstraint {
         let inv_inertia2 = inertia2.effective_inv_angular_inertia();
 
         #[cfg(feature = "2d")]
-        let difference = self.pre_step.rotation_difference
-            + body1.delta_rotation.angle_between(body2.delta_rotation);
+        let difference = {
+            let fixed_rad = self.fixed_rotation.as_radians();
+            self.pre_step.rotation_difference
+                + body1.delta_rotation.angle_between(body2.delta_rotation)
+                + fixed_rad
+        };
         #[cfg(feature = "3d")]
         // TODO: The XPBD paper doesn't have this minus sign, but it seems to be needed for stability.
         //       The angular correction code might have a wrong sign elsewhere.
