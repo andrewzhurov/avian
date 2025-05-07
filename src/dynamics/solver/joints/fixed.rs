@@ -26,6 +26,8 @@ pub struct FixedJoint {
     pub local_anchor1: Vector,
     /// Attachment point on the second body.
     pub local_anchor2: Vector,
+    /// Relative rotation of bodies to be maintained.
+    pub fixed_rotation: Rotation,
     /// Linear damping applied by the joint.
     pub damping_linear: Scalar,
     /// Angular damping applied by the joint.
@@ -57,7 +59,15 @@ impl XpbdConstraint<2> for FixedJoint {
         let compliance = self.compliance;
 
         // Align orientation
+        #[cfg(feature = "2d")]
+        let difference = {
+            let fixed_rad = self.fixed_rotation.as_radians();
+            self.get_rotation_difference(&body1.rotation, &body2.rotation) + fixed_rad
+        };
+
+        #[cfg(feature = "3d")]
         let difference = self.get_rotation_difference(&body1.rotation, &body2.rotation);
+
         let mut lagrange = self.align_lagrange;
         self.align_torque =
             self.align_orientation(body1, body2, difference, &mut lagrange, compliance, dt);
@@ -85,6 +95,7 @@ impl Joint for FixedJoint {
             entity2,
             local_anchor1: Vector::ZERO,
             local_anchor2: Vector::ZERO,
+            fixed_rotation: Rotation::default(),
             damping_linear: 1.0,
             damping_angular: 1.0,
             position_lagrange: 0.0,
@@ -148,6 +159,13 @@ impl Joint for FixedJoint {
 }
 
 impl FixedJoint {
+    pub fn with_fixed_rotation(self, fixed_rotation: impl Into<Rotation>) -> Self {
+        Self {
+            fixed_rotation: fixed_rotation.into(),
+            ..self
+        }
+    }
+
     #[cfg(feature = "2d")]
     fn get_rotation_difference(&self, rot1: &Rotation, rot2: &Rotation) -> Scalar {
         rot1.angle_between(*rot2)
